@@ -1,10 +1,17 @@
 import { Button, Checkbox, Divider, Form, Input, Typography } from 'antd'
+import type { FormProps } from 'antd'
 import { LockOutlined, MailOutlined } from '@ant-design/icons'
 
 const { Text, Title } = Typography
 
 export default function LoginForm() {
-  const onFinish = (values) => {
+  type LoginFormValues = {
+    email: string
+    password: string
+    remember?: boolean
+  }
+
+  const onFinish: FormProps<LoginFormValues>['onFinish'] = (values) => {
     console.log('Login submitted', values)
   }
 

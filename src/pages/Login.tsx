@@ -1,5 +1,5 @@
 import { Typography } from 'antd';
-import LoginForm from '../components/auth/LoginForm.jsx';
+import LoginForm from '../components/auth/LoginForm';
 
 const { Title, Text } = Typography;
 
@@ -7,7 +7,7 @@ const stats = [
   { label: 'Active Pipelines', value: '128' },
   { label: 'Weekly Reports', value: '2.4k' },
   { label: 'Data Sources', value: '43' },
-];
+] as const;
 
 const highlights = [
   {
@@ -24,7 +24,7 @@ const highlights = [
     title: 'Realtime monitoring',
     description: 'Track freshness, drift, and KPIs with proactive alerts.',
   },
-];
+] as const;
 
 export default function Login() {
   return (

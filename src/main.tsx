@@ -1,8 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { ConfigProvider } from 'antd'
-import App from './App.jsx'
-import { antdTheme } from './theme/antdTheme.js'
+import App from './App'
+import { antdTheme } from './theme/antdTheme'
 import 'antd/dist/reset.css'
 import './index.css'
 
