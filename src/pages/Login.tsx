@@ -1,94 +1,42 @@
-import { Typography } from 'antd';
-import LoginForm from '../components/auth/LoginForm';
-
-const { Title, Text } = Typography;
-
-const stats = [
-  { label: 'Active Pipelines', value: '128' },
-  { label: 'Weekly Reports', value: '2.4k' },
-  { label: 'Data Sources', value: '43' },
-] as const;
-
-const highlights = [
-  {
-    title: 'Centralized governance',
-    description:
-      'Unify access policies, audit trails, and compliance checkpoints across teams.',
-  },
-  {
-    title: 'Composable analytics',
-    description:
-      'Plug in new datasets, metrics, and dashboards without rework.',
-  },
-  {
-    title: 'Realtime monitoring',
-    description: 'Track freshness, drift, and KPIs with proactive alerts.',
-  },
-] as const;
+import LoginForm from '../components/auth/LoginForm'
 
 export default function Login() {
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-grid bg-[length:120px_120px] opacity-40" />
+    <div className="relative min-h-screen overflow-hidden bg-sky-50">
+      <div className="absolute inset-0 bg-gradient-to-br from-sky-100 via-sky-50 to-slate-50" />
+      <div className="absolute -top-48 right-0 h-96 w-96 rounded-full bg-sky-200/60 blur-3xl" />
+      <div className="absolute -bottom-48 left-0 h-96 w-96 rounded-full bg-blue-200/50 blur-3xl" />
 
-      <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col items-center gap-10 px-6 py-12 lg:flex-row lg:items-stretch">
-        <section className="flex w-full flex-col justify-between gap-10 lg:w-1/2">
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-3 rounded-full border border-slate-700/50 bg-slate-900/70 px-4 py-2 text-xs uppercase tracking-[0.3em] text-slate-300">
-              MIS Business Intelligence
+      <div className="relative mx-auto flex min-h-screen max-w-6xl items-center px-6 py-12">
+        <div className="grid w-full gap-10 rounded-3xl border border-slate-200/70 bg-white/85 p-10 shadow-2xl backdrop-blur lg:grid-cols-[1.2fr_1fr] lg:items-center">
+          <section className="flex h-full flex-col gap-8 lg:justify-center">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+                MIS Banking Portal
+              </p>
+              <h1 className="mt-3 text-2xl font-semibold text-slate-900 md:text-3xl">
+                Secure LDAP Access
+              </h1>
+              <p className="mt-3 text-sm text-slate-600">
+                Authorized users only. All access is monitored and logged.
+              </p>
             </div>
-            <Title
-              level={1}
-              className="!m-0 !font-display !text-4xl !text-white md:!text-5xl"
-            >
-              Command center for data-driven leaders.
-            </Title>
-            <Text className="text-base text-slate-300">
-              Control every signal, metric, and model from a single workspace
-              built for scale. Give every department a shared, trusted source of
-              truth.
-            </Text>
-          </div>
 
-          <div className="grid gap-4">
-            {highlights.map((item) => (
-              <div
-                key={item.title}
-                className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5 shadow-card"
-              >
-                <p className="text-sm font-semibold uppercase tracking-[0.25em] text-mint-500">
-                  {item.title}
-                </p>
-                <p className="mt-2 text-sm text-slate-400">
-                  {item.description}
-                </p>
-              </div>
-            ))}
-          </div>
+            <div className="rounded-2xl border border-slate-200 bg-white/95 p-6 text-sm text-slate-600">
+              <p className="font-semibold text-slate-700">Security Notice</p>
+              <ul className="mt-3 list-disc space-y-2 pl-5">
+                <li>Use your corporate LDAP credentials.</li>
+                <li>Do not share usernames or passwords.</li>
+                <li>Contact IT Security for access issues.</li>
+              </ul>
+            </div>
+          </section>
 
-          <div className="grid grid-cols-3 gap-4">
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="glass-panel rounded-2xl p-4 text-center"
-              >
-                <p className="text-2xl font-semibold text-white">
-                  {stat.value}
-                </p>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                  {stat.label}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="flex w-full items-center justify-center lg:w-1/2">
-          <div className="glass-panel w-full max-w-md rounded-3xl p-8 shadow-card">
+          <section className="flex h-full flex-col justify-center rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
             <LoginForm />
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
     </div>
-  );
+  )
 }
