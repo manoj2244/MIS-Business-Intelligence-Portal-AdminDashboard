@@ -1,18 +1,39 @@
-import { Button, Checkbox, Divider, Form, Input, Typography } from 'antd'
+import { Button, Checkbox, Divider, Form, Input, Typography, message } from 'antd'
 import type { FormProps } from 'antd'
-import { LockOutlined, MailOutlined } from '@ant-design/icons'
+import { LockOutlined, UserOutlined } from '@ant-design/icons'
+import { useState } from 'react'
+import { authService } from '../../services/authService'
 
 const { Text, Title } = Typography
 
 export default function LoginForm() {
+  const [loading, setLoading] = useState(false)
+
   type LoginFormValues = {
-    email: string
+    username: string
     password: string
     remember?: boolean
   }
 
-  const onFinish: FormProps<LoginFormValues>['onFinish'] = (values) => {
-    console.log('Login submitted', values)
+  const onFinish: FormProps<LoginFormValues>['onFinish'] = async (values) => {
+    setLoading(true)
+    try {
+      const response = await authService.loginLdap({
+        username: values.username,
+        password: values.password,
+      })
+      
+      message.success(`Welcome back, ${response.user.name}!`)
+      
+      // Redirect to dashboard or reload
+      window.location.href = '/dashboard'
+    } catch (error: any) {
+      console.error('Login error:', error)
+      const errorMessage = error.response?.data?.message || 'Login failed. Please check your credentials.'
+      message.error(errorMessage)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -36,17 +57,16 @@ export default function LoginForm() {
         className="space-y-4"
       >
         <Form.Item
-          label={<span className="text-slate-300">Work Email</span>}
-          name="email"
+          label={<span className="text-slate-300">Username</span>}
+          name="username"
           rules={[
-            { required: true, message: 'Please enter your email' },
-            { type: 'email', message: 'Please enter a valid email' },
+            { required: true, message: 'Please enter your username' },
           ]}
         >
           <Input
             size="large"
-            prefix={<MailOutlined className="text-slate-500" />}
-            placeholder="you@company.com"
+            prefix={<UserOutlined className="text-slate-500" />}
+            placeholder="Your LDAP username"
           />
         </Form.Item>
 
@@ -75,7 +95,7 @@ export default function LoginForm() {
         </div>
 
         <Form.Item className="!mb-0">
-          <Button type="primary" size="large" block>
+          <Button type="primary" size="large" block htmlType="submit" loading={loading}>
             Sign In
           </Button>
         </Form.Item>
@@ -84,10 +104,10 @@ export default function LoginForm() {
       <Divider>Or</Divider>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <Button size="large" className="border-slate-700 bg-transparent text-slate-200">
+        <Button size="large" className="border-slate-700 bg-transparent text-slate-200" disabled>
           Continue with SSO
         </Button>
-        <Button size="large" className="border-slate-700 bg-transparent text-slate-200">
+        <Button size="large" className="border-slate-700 bg-transparent text-slate-200" disabled>
           Continue with Google
         </Button>
       </div>
