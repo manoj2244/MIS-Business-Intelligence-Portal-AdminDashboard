@@ -1,68 +1,64 @@
-// src/services/authService.ts
-
-import axiosInstance from '../lib/axios';
-
-export interface LoginCredentials {
-  username: string;
-  password: string;
-}
-
-export interface AuthResponse {
-  user: {
-    id: string;
-    employeeId: string;
-    name: string;
-    email: string;
-    role: string;
-    branch: string;
-    department: string;
-    designation: string;
-  };
-  accessToken: string;
-  refreshToken: string;
-}
+import { store, fetch } from '../utils/httpUtil';
+import { AUTH_LOGIN_PATH, AUTH_LOGOUT_PATH, AUTH_PROFILE_PATH } from '../constants';
+import {
+  extractAuthPayload,
+  setAuthSession,
+  clearAuthSession,
+  isAuthenticatedSession,
+  getUserProfile,
+} from '../utils/authUtil';
+import type { LoginCredentials, AuthResponse, User } from '../types';
 
 export const authService = {
   // LDAP Login
   loginLdap: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    const response = await axiosInstance.post('/auth/login/ldap', credentials);
-    const data = response.data.data;
-    
+    const response = await store(AUTH_LOGIN_PATH, credentials);
+    const { accessToken, refreshToken, user } = extractAuthPayload(response?.data);
+
     // Store tokens and user info in localStorage
-    localStorage.setItem('accessToken', data.accessToken);
-    localStorage.setItem('refreshToken', data.refreshToken);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    
-    return data;
+    setAuthSession({ accessToken, refreshToken, user });
+
+    // Fallback: if backend omits user in login response, fetch profile and persist it
+    let resolvedUser = user;
+    if (!resolvedUser && accessToken) {
+      const profileRes = await fetch(AUTH_PROFILE_PATH);
+      resolvedUser = profileRes?.data?.data || profileRes?.data || null;
+      if (resolvedUser) {
+        setAuthSession({ user: resolvedUser });
+      }
+    }
+
+    return { user: (resolvedUser || {}) as User, accessToken, refreshToken };
   },
 
   // Logout
   logout: async (): Promise<void> => {
     try {
-      await axiosInstance.post('/auth/logout');
+      await store(AUTH_LOGOUT_PATH, {});
+    } catch (error) {
+      console.error('Logout API error:', error);
     } finally {
-      // Clear tokens and user info from localStorage
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
+      clearAuthSession();
     }
   },
 
   // Get user profile
-  getProfile: async () => {
-    const response = await axiosInstance.get('/auth/profile');
-    return response.data.data;
+  getProfile: async (): Promise<User> => {
+    const response = await fetch(AUTH_PROFILE_PATH);
+    const profile = response?.data?.data || response?.data || null;
+    if (profile) {
+      setAuthSession({ user: profile });
+    }
+    return profile;
   },
 
   // Check if user is authenticated
   isAuthenticated: (): boolean => {
-    const accessToken = localStorage.getItem('accessToken');
-    return !!accessToken;
+    return isAuthenticatedSession();
   },
 
-  // Get current user from localStorage
-  getCurrentUser: () => {
-    const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
+  // Get current user
+  getCurrentUser: (): User | null => {
+    return getUserProfile();
   },
 };

@@ -5,12 +5,16 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authService } from '../../services/authService'
 import toast from '../../lib/toast'
+import { useAuthStore } from '../../stores/authStore'
+import { rbacApi } from '../../services/rbacApi'
 
 const { Text, Title } = Typography
 
 export default function LoginForm() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  const setAuth = useAuthStore((state) => state.setAuth)
+  const setUserAccess = useAuthStore((state) => state.setUserAccess)
 
   type LoginFormValues = {
     username: string
@@ -24,6 +28,28 @@ export default function LoginForm() {
         username: values.username,
         password: values.password,
       })
+
+      setAuth({
+        user: response.user,
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
+      })
+
+      try {
+        const accessData = await rbacApi.getMyAccess(
+          response.user?.employeeId || response.user?.userCode
+        )
+
+        if (accessData) {
+          setUserAccess({
+            permissions: accessData.permissions || [],
+            userRole: accessData.userRole,
+            allowedBranches: accessData.allowedBranches || [],
+          })
+        }
+      } catch (accessError) {
+        console.error('Failed to fetch user access:', accessError)
+      }
       
       toast.success(`Welcome back, ${response.user.name}!`)
       navigate('/dashboard', { replace: true })
