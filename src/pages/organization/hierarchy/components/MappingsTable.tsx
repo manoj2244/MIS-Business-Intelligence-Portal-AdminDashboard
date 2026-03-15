@@ -171,28 +171,28 @@ export default function MappingsTable({
     <div>
       <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false}>
+          <Card className="pro-card-gradient mapping-summary-card map-stat-total" bordered={false} size="small">
             <Statistic title="Visible Mappings" value={summary.total} />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false}>
+          <Card className="pro-card-gradient mapping-summary-card map-stat-cluster" bordered={false} size="small">
             <Statistic title="Cluster Mapped" value={summary.cluster} />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false}>
+          <Card className="pro-card-gradient mapping-summary-card map-stat-direct" bordered={false} size="small">
             <Statistic title="Region Direct" value={summary.direct} />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false}>
+          <Card className="pro-card-gradient mapping-summary-card map-stat-inactive" bordered={false} size="small">
             <Statistic title="Inactive" value={summary.inactive} />
           </Card>
         </Col>
       </Row>
 
-      <Card bordered={false} style={{ marginBottom: 16 }}>
+      <Card className="pro-card-gradient mapping-filters-card" bordered={false} size="small" style={{ marginBottom: 16 }}>
         <Row gutter={[12, 12]} align="middle">
           <Col xs={24} md={8} lg={6}>
             <Select
@@ -246,7 +246,7 @@ export default function MappingsTable({
         </Row>
       </Card>
 
-      <Card bordered={false}>
+      <Card className="pro-card-gradient mapping-table-card" bordered={false} size="small">
         {safeData.length ? (
           <Table
             className="pro-table"

@@ -425,6 +425,41 @@ body {
   border-color: #ffe5c8 !important;
 }
 
+.mapping-summary-card {
+  border: 1px solid #d9e7fb !important;
+}
+
+.map-stat-total {
+  background: linear-gradient(135deg, #edf4ff 0%, #f8fbff 100%) !important;
+  border-color: #cfe0ff !important;
+}
+
+.map-stat-cluster {
+  background: linear-gradient(135deg, #ebfbf7 0%, #f6fffc 100%) !important;
+  border-color: #c4efe5 !important;
+}
+
+.map-stat-direct {
+  background: linear-gradient(135deg, #fff7eb 0%, #fffcf6 100%) !important;
+  border-color: #ffe2bf !important;
+}
+
+.map-stat-inactive {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-color: #dce5ef !important;
+}
+
+.mapping-filters-card,
+.mapping-table-card {
+  border: 1px solid #d9e7fb !important;
+  background: linear-gradient(180deg, #fbfdff 0%, #f4f8ff 100%) !important;
+}
+
+.mapping-filters-card > .ant-card-body,
+.mapping-table-card > .ant-card-body {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(246, 250, 255, 0.92));
+}
+
 .table-scroll-pane {
   max-height: 65vh;
   overflow: auto;
