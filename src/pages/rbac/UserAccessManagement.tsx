@@ -265,12 +265,12 @@ export default function UserAccessManagement() {
   const { selectedRegions: selReg, selectedClusters: selClu, selectedBranches: selBra } = getSelectedItems();
 
   return (
-    <div className="ui-page" style={{ padding: 24 }}>
-      <Row gutter={[16, 16]}>
+    <div className="ui-page" style={{ padding: 12 }}>
+      <Row gutter={[12, 12]}>
         {/* User Selection */}
         <Col xs={24}>
           <div className="ui-sticky-toolbar">
-          <Card className="pro-card-gradient uam-card" title={<><UserOutlined /> Select User</>}>
+          <Card className="pro-card-gradient uam-card" size="small" title={<><UserOutlined /> Select User</>}>
             <Row gutter={16}>
               <Col xs={24} md={12}>
                 <Space direction="vertical" style={{ width: '100%' }}>
@@ -324,10 +324,10 @@ export default function UserAccessManagement() {
 
         {/* Role Assignment */}
         <Col xs={24}>
-          <Card className="pro-card-gradient uam-card" title={<><KeyOutlined /> Assign Role</>}>
+          <Card className="pro-card-gradient uam-card" size="small" title={<><KeyOutlined /> Assign Role</>}>
             <Form form={form} layout="inline" onFinish={handleAssignRole} disabled={!selectedUser} style={{ width: '100%' }}>
               <Form.Item name="roleCode" label="Select Role" rules={[{ required: true, message: 'Please select a role' }]} style={{ flex: 1, minWidth: 300 }}>
-                <Select placeholder="Choose a role" size="large">
+                <Select placeholder="Choose a role">
                   {roles.map((role: any) => (
                     <Option key={role.roleCode} value={role.roleCode}>
                       <Space>
@@ -339,7 +339,7 @@ export default function UserAccessManagement() {
                 </Select>
               </Form.Item>
               <Form.Item>
-                <Button type="primary" htmlType="submit" loading={loading} size="large">Assign Role</Button>
+                <Button type="primary" htmlType="submit" loading={loading}>Assign Role</Button>
               </Form.Item>
             </Form>
           </Card>
@@ -349,6 +349,7 @@ export default function UserAccessManagement() {
         <Col xs={24}>
           <Card
             className="pro-card-gradient uam-card"
+            size="small"
             title={<Space><DatabaseOutlined /><span>Assign Data Access</span></Space>}
             extra={
               <Space>

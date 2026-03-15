@@ -193,8 +193,8 @@ const AdminLayout: React.FC = () => {
                 <SafetyOutlined style={{ fontSize: 15 }} />
               </div>
               <div className="flex flex-col leading-tight">
-                <Text className="text-base font-semibold" style={{ color: '#1d4ed8' }}>Admin MIS Portal</Text>
-                <Text style={{ fontSize: 11, color: '#64748b' }}>Admin Workspace</Text>
+                <Text className="text-sm font-semibold" style={{ color: '#1d4ed8' }}>Admin MIS Portal</Text>
+                <Text style={{ fontSize: 10, color: '#64748b' }}>Admin Workspace</Text>
               </div>
             </div>
           )}
@@ -238,7 +238,7 @@ const AdminLayout: React.FC = () => {
         }}
       >
         <Header
-          className="flex items-center justify-between px-6 shadow-sm"
+          className="flex items-center justify-between px-5 shadow-sm"
           style={{
             position: 'sticky',
             top: 0,
@@ -246,9 +246,9 @@ const AdminLayout: React.FC = () => {
             backdropFilter: 'blur(8px)',
             background: 'rgba(255,255,255,0.92)',
             borderBottom: '1px solid #dbe7fb',
-            height: '64px',
-            lineHeight: '64px',
-            padding: '0 24px',
+            height: '60px',
+            lineHeight: '60px',
+            padding: '0 20px',
           }}
         >
           <div className="flex items-center gap-4">
@@ -276,10 +276,10 @@ const AdminLayout: React.FC = () => {
         </Header>
         
         <Content
-          className="p-4"
+          className="p-3"
           style={{
             overflow: 'auto',
-            height: 'calc(100vh - 64px)',
+            height: 'calc(100vh - 60px)',
             background: 'linear-gradient(180deg, rgba(255,255,255,0.92), rgba(247,250,255,0.92))',
             borderTop: 'none',
           }}
@@ -290,7 +290,7 @@ const AdminLayout: React.FC = () => {
               minHeight: '100%',
               background: 'linear-gradient(180deg, rgba(255,255,255,0.96), rgba(244,248,255,0.94))',
               border: '1px solid #dbe7fb',
-              padding: 12,
+              padding: 10,
             }}
           >
             <Outlet />

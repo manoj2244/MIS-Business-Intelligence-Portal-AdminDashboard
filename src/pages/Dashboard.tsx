@@ -124,17 +124,17 @@ export default function Dashboard() {
   const unmappedMainCodes = Math.max(stats.mainCodesTotal - stats.mainCodesMapped, 0);
 
   return (
-    <div className="ui-page space-y-6">
+    <div className="ui-page space-y-4">
       <div>
-        <Title level={3} className="!mb-1" style={{ fontWeight: 600, color: '#1e3a8a' }}>
+        <Title level={4} className="!mb-1" style={{ fontWeight: 600, color: '#1e3a8a' }}>
           Dashboard
         </Title>
         <Text type="secondary">Welcome{user?.name ? `, ${user.name}` : ''}.</Text>
       </div>
 
-      <Row gutter={[16, 16]}>
+      <Row gutter={[12, 12]}>
         <Col xs={24} md={8}>
-          <Card className="pro-card-gradient stat-card-region" loading={loading}>
+          <Card className="pro-card-gradient stat-card-region" loading={loading} size="small">
             <Statistic
               title={<Space size={6}><TeamOutlined />Users</Space>}
               value={stats.users}
@@ -143,25 +143,25 @@ export default function Dashboard() {
           </Card>
         </Col>
         <Col xs={24} md={8}>
-          <Card className="pro-card-gradient stat-card-cluster" loading={loading}>
+          <Card className="pro-card-gradient stat-card-cluster" loading={loading} size="small">
             <Statistic title={<Space size={6}><CheckCircleOutlined />Roles</Space>} value={stats.roles} />
           </Card>
         </Col>
         <Col xs={24} md={8}>
-          <Card className="pro-card-gradient stat-card-branch" loading={loading}>
+          <Card className="pro-card-gradient stat-card-branch" loading={loading} size="small">
             <Statistic title={<Space size={6}><BankOutlined />Mapped Branches</Space>} value={stats.branchesMapped} />
           </Card>
         </Col>
       </Row>
 
-      <Row gutter={[16, 16]}>
+      <Row gutter={[12, 12]}>
         <Col xs={24} md={8}>
-          <Card className="pro-card-gradient stat-card-region" loading={loading}>
+          <Card className="pro-card-gradient stat-card-region" loading={loading} size="small">
             <Statistic title={<Space size={6}><ClusterOutlined />Regions</Space>} value={stats.regions} />
           </Card>
         </Col>
         <Col xs={24} md={8}>
-          <Card className="pro-card-gradient stat-card-cluster" loading={loading}>
+          <Card className="pro-card-gradient stat-card-cluster" loading={loading} size="small">
             <Statistic title={<Space size={6}><ClusterOutlined />Clusters</Space>} value={stats.clusters} />
           </Card>
         </Col>
@@ -169,6 +169,7 @@ export default function Dashboard() {
           <Card
             className="pro-card-gradient stat-card-direct"
             loading={loading}
+            size="small"
             hoverable
             onClick={() => navigate('/organization-setup/financial-account-mapping?tab=maincode-mapping')}
           >
@@ -186,7 +187,7 @@ export default function Dashboard() {
         </Col>
       </Row>
 
-      <Card className="pro-card-gradient">
+      <Card className="pro-card-gradient" size="small">
         <Space direction="vertical" size={8} style={{ width: '100%' }}>
           <Space style={{ justifyContent: 'space-between', width: '100%' }}>
             <Text strong style={{ color: '#1e3a8a' }}>Mapping Coverage</Text>

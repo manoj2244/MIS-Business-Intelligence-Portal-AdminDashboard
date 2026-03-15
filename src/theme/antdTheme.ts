@@ -8,6 +8,7 @@ export const antdTheme: ThemeConfig = {
     colorWarning: '#d97706',
     colorError: '#dc2626',
     fontFamily: 'Inter, system-ui, sans-serif',
+    fontSize: 13,
     borderRadius: 10,
     colorBgContainer: '#ffffff',
     colorText: '#0f172a',

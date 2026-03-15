@@ -126,9 +126,10 @@ export default function Users() {
   ];
 
   return (
-    <div className="ui-page" style={{ padding: 24 }}>
+    <div className="ui-page" style={{ padding: 12 }}>
       <Card
         className="pro-card-gradient"
+        size="small"
         title={
           <Space>
             <UserOutlined />
@@ -161,4 +162,3 @@ export default function Users() {
     </div>
   );
 }
-

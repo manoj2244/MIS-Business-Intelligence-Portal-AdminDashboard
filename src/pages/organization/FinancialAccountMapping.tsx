@@ -23,7 +23,9 @@ import {
   DeleteOutlined,
   EditOutlined,
   LinkOutlined,
+  NodeIndexOutlined,
   PlusOutlined,
+  ProfileOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -464,18 +466,11 @@ export default function FinancialAccountMapping() {
 
   return (
     <div className="ui-page">
-      <div className="ui-sticky-toolbar" style={{ marginBottom: 12 }}>
-        <Card className="pro-card-gradient" size="small">
-          <Space>
-            <Text strong>Financial Mapping Workspace</Text>
-            <Tag color="blue">Professional View</Tag>
-          </Space>
-        </Card>
-      </div>
-    <Card className="pro-card-gradient">
+    <Card className="pro-card-gradient financial-mapping-shell" size="small">
       <Tabs
         activeKey={activeTab}
         onChange={setActiveTab}
+        tabBarGutter={20}
         destroyInactiveTabPane
         items={[
           {
@@ -493,11 +488,20 @@ export default function FinancialAccountMapping() {
                   <Button icon={<ReloadOutlined />} onClick={() => void fetchHierarchy()}>Refresh</Button>
                 </Space>
 
-                <Row gutter={16}>
+                <Row gutter={[12, 12]}>
                   <Col xs={24} lg={14}>
-                    <Card size="small" title="Hierarchy Tree" loading={loadingHierarchy}>
+                    <Card
+                      size="small"
+                      title={
+                        <Space size={6}>
+                          <NodeIndexOutlined />
+                          <span>Hierarchy Tree</span>
+                        </Space>
+                      }
+                      loading={loadingHierarchy}
+                    >
                       {treeData.length ? (
-                        <div className="tree-scroll-pane">
+                        <div className="tree-scroll-pane financial-tree-scroll-pane">
                           <Tree treeData={treeData} selectedKeys={selectedAccountCode ? [selectedAccountCode] : []} onSelect={(keys) => setSelectedAccountCode(String(keys?.[0] || ''))} defaultExpandAll />
                         </div>
                       ) : (
@@ -506,7 +510,15 @@ export default function FinancialAccountMapping() {
                     </Card>
                   </Col>
                   <Col xs={24} lg={10}>
-                    <Card size="small" title="Node Details">
+                    <Card
+                      size="small"
+                      title={
+                        <Space size={6}>
+                          <ProfileOutlined />
+                          <span>Node Details</span>
+                        </Space>
+                      }
+                    >
                       {selectedNode ? (
                         <Descriptions bordered size="small" column={1}>
                           <Descriptions.Item label="Node Name">{selectedNode.nodeName}</Descriptions.Item>
@@ -532,7 +544,6 @@ export default function FinancialAccountMapping() {
             label: 'MainCode Mapping',
             children: (
               <>
-                <Card className="pro-card-gradient" size="small" style={{ marginBottom: 12 }}><Text strong>MainCode Mapping Workspace</Text></Card>
                 <Space style={{ marginBottom: 16 }} wrap>
                   <Input.Search
                     allowClear
@@ -542,7 +553,7 @@ export default function FinancialAccountMapping() {
                       setMappingSearch(nextValue);
                       void fetchMappingData({ page: 1, pageSize: mappingPagination.pageSize, q: nextValue, mappingStatus: mappingStatusFilter, sourceStatus: sourceStatusFilter });
                     }}
-                    style={{ width: 420 }}
+                    style={{ width: 'min(100%, 360px)' }}
                   />
                   <Select
                     value={mappingStatusFilter}
@@ -550,7 +561,7 @@ export default function FinancialAccountMapping() {
                       setMappingStatusFilter(value);
                       void fetchMappingData({ page: 1, pageSize: mappingPagination.pageSize, q: mappingSearch, mappingStatus: value, sourceStatus: sourceStatusFilter });
                     }}
-                    style={{ width: 160 }}
+                    style={{ width: 170 }}
                   >
                     <Option value="all">All Mappings</Option>
                     <Option value="mapped">Mapped</Option>
@@ -563,7 +574,7 @@ export default function FinancialAccountMapping() {
                       setSourceStatusFilter(value);
                       void fetchMappingData({ page: 1, pageSize: mappingPagination.pageSize, q: mappingSearch, mappingStatus: mappingStatusFilter, sourceStatus: value });
                     }}
-                    style={{ width: 150 }}
+                    style={{ width: 170 }}
                   >
                     <Option value="all">All Source</Option>
                     <Option value="active">Source Active</Option>
