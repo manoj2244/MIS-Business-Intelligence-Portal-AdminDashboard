@@ -15,7 +15,7 @@ export default function Login() {
                 MIS Banking Portal
               </p>
               <h1 className="mt-3 text-2xl font-semibold text-slate-900 md:text-3xl">
-                Secure LDAP Access
+                Secure Admin Access
               </h1>
               <p className="mt-3 text-sm text-slate-600">
                 Authorized users only. All access is monitored and logged.
@@ -25,7 +25,7 @@ export default function Login() {
             <div className="rounded-2xl border border-slate-200 bg-white/95 p-6 text-sm text-slate-600">
               <p className="font-semibold text-slate-700">Security Notice</p>
               <ul className="mt-3 list-disc space-y-2 pl-5">
-                <li>Use your corporate LDAP credentials.</li>
+                <li>Use your authorized corporate credentials.</li>
                 <li>Do not share usernames or passwords.</li>
                 <li>Contact IT Security for access issues.</li>
               </ul>

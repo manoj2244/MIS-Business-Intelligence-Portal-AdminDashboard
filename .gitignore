@@ -5,6 +5,7 @@ dist
 
 *.local
 .env
-.env.*
+.env.local
+.env.development
 
 .DS_Store

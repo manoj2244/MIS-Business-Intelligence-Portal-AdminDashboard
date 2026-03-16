@@ -66,10 +66,10 @@ export default function LoginForm() {
     <div className="space-y-6">
       <div className="space-y-2">
         <Title level={2} className="!m-0 !font-display !text-2xl !text-slate-900">
-          LDAP Login
+          Admin Login for MIS
         </Title>
         <Text className="text-sm text-slate-500">
-          Sign in to the MIS Banking Portal.
+          Sign in to the MIS Admin Portal.
         </Text>
       </div>
 
@@ -90,7 +90,7 @@ export default function LoginForm() {
           <Input
             size="large"
             prefix={<UserOutlined className="text-slate-500" />}
-            placeholder="Your LDAP username"
+            placeholder="Enter your username"
           />
         </Form.Item>
 
