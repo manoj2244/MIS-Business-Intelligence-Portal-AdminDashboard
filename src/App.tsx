@@ -19,7 +19,7 @@ import FinancialAccountMapping from './pages/organization/FinancialAccountMappin
 
 export default function App() {
   return (
-    <BrowserRouter>
+<BrowserRouter basename="/admin">
       <NavigationHandler />
       <Routes>
         <Route element={<PublicRoute />}>
