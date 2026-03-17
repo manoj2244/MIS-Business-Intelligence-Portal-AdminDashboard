@@ -20,7 +20,6 @@ import { useUIStore } from '../stores/uiStore';
 import { authService } from '../services/authService';
 import { menuItems } from '../config/menu';
 import { notifySuccess } from '../utils/notifyUtil';
-import type { MenuItem } from '../types';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -100,22 +99,9 @@ const AdminLayout: React.FC = () => {
     },
   ];
 
-  // Filter menu items based on user role
-const filterMenuByRole = (items: MenuItem[]): MenuItem[] => {
-  if (!effectiveRole) return items; // temporary fallback for debugging
-  return items
-    .filter((item) => item.right.includes('ALL') || item.right.includes(effectiveRole))
-    .map((item) => ({
-      ...item,
-      subMenus: item.subMenus?.filter(
-        (sub) => sub.right.includes('ALL') || sub.right.includes(effectiveRole)
-      ),
-    }));
-};
-
   // Convert menu items to Ant Design menu format
   const getMenuItems = (): MenuProps['items'] => {
-    const filteredMenu = filterMenuByRole(menuItems);
+    const filteredMenu = menuItems;
     
     return filteredMenu.map((item) => {
       if (item.subMenus && item.subMenus.length > 0) {
