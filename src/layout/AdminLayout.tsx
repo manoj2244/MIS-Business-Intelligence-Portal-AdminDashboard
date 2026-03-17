@@ -101,27 +101,17 @@ const AdminLayout: React.FC = () => {
   ];
 
   // Filter menu items based on user role
-  const filterMenuByRole = (items: MenuItem[]): MenuItem[] => {
-    if (!effectiveRole) return [];
-    
-    return items
-      .filter((item) => {
-        if (item.right.includes('ALL')) return true;
-        return item.right.includes(effectiveRole);
-      })
-      .map((item) => {
-        if (item.subMenus) {
-          return {
-            ...item,
-            subMenus: item.subMenus.filter((sub) => {
-              if (sub.right.includes('ALL')) return true;
-              return sub.right.includes(effectiveRole);
-            }),
-          };
-        }
-        return item;
-      });
-  };
+const filterMenuByRole = (items: MenuItem[]): MenuItem[] => {
+  if (!effectiveRole) return items; // temporary fallback for debugging
+  return items
+    .filter((item) => item.right.includes('ALL') || item.right.includes(effectiveRole))
+    .map((item) => ({
+      ...item,
+      subMenus: item.subMenus?.filter(
+        (sub) => sub.right.includes('ALL') || sub.right.includes(effectiveRole)
+      ),
+    }));
+};
 
   // Convert menu items to Ant Design menu format
   const getMenuItems = (): MenuProps['items'] => {
