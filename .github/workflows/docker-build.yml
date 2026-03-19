@@ -59,4 +59,4 @@ jobs:
           script: |
             cd /var/www/MIS-Business-Intelligence-Portal-Backend
             docker compose pull admin
-            docker compose up -d admin
+            docker compose up -d --force-recreate admin
