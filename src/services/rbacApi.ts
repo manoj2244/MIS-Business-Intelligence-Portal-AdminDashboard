@@ -1,4 +1,4 @@
-import { fetch, store, destroy, update } from '../utils/httpUtil';
+import { fetch, store, destroy, update, patch } from '../utils/httpUtil';
 import type { Role, UserAccess, Permission, DataAccessEntry } from '../types';
 
 const baseUrl = '/rbac';
@@ -131,6 +131,11 @@ export const rbacApi = {
     const response = await fetch('/auth/users');
     const data = extractPayload(response);
     return Array.isArray(data) ? data : [];
+  },
+
+  assignUserBranch: async (userCode: string, branchCode: string): Promise<any> => {
+    const response = await patch(`/auth/users/${userCode}/branch`, { branchCode });
+    return extractPayload(response);
   },
 
   // Cache Management

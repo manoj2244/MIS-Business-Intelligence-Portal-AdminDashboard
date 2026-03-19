@@ -501,6 +501,62 @@ body {
   background: rgba(37, 99, 235, 0.04) !important;
 }
 
+/* Keep sticky/fixed columns opaque while horizontally scrolling */
+.pro-table .ant-table-thead > tr > th.ant-table-cell-fix-left,
+.pro-table .ant-table-thead > tr > th.ant-table-cell-fix-right {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(79, 70, 229, 0.1)) !important;
+}
+
+.pro-table .ant-table-tbody > tr > td.ant-table-cell-fix-left,
+.pro-table .ant-table-tbody > tr > td.ant-table-cell-fix-right {
+  background: #ffffff !important;
+}
+
+.pro-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-left,
+.pro-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-right {
+  background: #f4f8ff !important;
+}
+
+.pro-table .ant-table-tbody > tr.ant-table-row-selected > td,
+.pro-table .ant-table-tbody > tr.ant-table-row-selected > td.ant-table-cell-fix-left,
+.pro-table .ant-table-tbody > tr.ant-table-row-selected > td.ant-table-cell-fix-right {
+  background: #eaf2ff !important;
+}
+
+.user-mgmt-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.user-mgmt-stat {
+  border: 1px solid #dbe7fb !important;
+}
+
+.user-mgmt-stat--total {
+  background: linear-gradient(135deg, #edf4ff 0%, #f8fbff 100%) !important;
+  border-color: #cfe0ff !important;
+}
+
+.user-mgmt-stat--assigned {
+  background: linear-gradient(135deg, #ebfbf7 0%, #f7fffc 100%) !important;
+  border-color: #c4efe5 !important;
+}
+
+.user-mgmt-stat--unassigned {
+  background: linear-gradient(135deg, #fff7eb 0%, #fffcf6 100%) !important;
+  border-color: #ffe2bf !important;
+}
+
+.user-mgmt-stat--active {
+  background: linear-gradient(135deg, #eef4ff 0%, #f7f9ff 100%) !important;
+  border-color: #d5e2ff !important;
+}
+
+.pro-table .user-mgmt-row-unassigned > td {
+  background: linear-gradient(90deg, rgba(255, 247, 237, 0.7), rgba(255, 255, 255, 0.95));
+}
+
 .hierarchy-node {
   width: 100%;
   display: flex;

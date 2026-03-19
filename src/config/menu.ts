@@ -9,6 +9,22 @@ export const menuItems: MenuItem[] = [
     right: ['ADMIN', 'HR'],
   },
   {
+    key: 'user-management/',
+    path: '/user-management',
+    menu: 'User Management',
+    antIcon: 'UserOutlined',
+    right: ['ADMIN'],
+    subMenus: [
+      {
+        key: 'users/',
+        path: '/users',
+        menu: 'HRMS Users',
+        antIcon: 'UserOutlined',
+        right: ['ADMIN'],
+      },
+    ],
+  },
+  {
     key: 'rbac/',
     path: '/rbac',
     menu: 'Access Control',

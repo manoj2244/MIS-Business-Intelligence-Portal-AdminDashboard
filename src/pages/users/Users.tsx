@@ -1,67 +1,204 @@
-import { useEffect, useState } from 'react';
-import { Card, Table, Input, Tag, Space, Typography, message } from 'antd';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Alert,
+  Avatar,
+  Button,
+  Card,
+  Col,
+  Form,
+  Input,
+  Modal,
+  Row,
+  Select,
+  Space,
+  Spin,
+  Statistic,
+  Table,
+  Tag,
+  Typography,
+  message,
+} from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
+  BankOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
   SearchOutlined,
+  SwapOutlined,
+  TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons';
 import { rbacApi } from '../../services/rbacApi';
+import { getBranches } from '../../services/hierarchyApi';
 
 const { Text } = Typography;
 
 interface HrmsUser {
-  id: string;
+  id?: string;
   employeeId: string;
+  empCode?: string | null;
   name: string;
-  email: string;
-  role: string;
-  isActive: boolean;
-  branch?: string;
-  department?: string;
-  designation?: string;
-  lastLogin?: string;
+  email?: string | null;
+  role?: string | null;
+  roleCode?: string | null;
+  roleName?: string | null;
+  isActive?: boolean;
+  branchCode?: string | null;
+  branch?: string | null;
+  department?: string | null;
+  designation?: string | null;
+  mobile?: string | null;
+  lastLogin?: string | Date | null;
   [key: string]: any;
 }
 
+interface BranchOption {
+  branchCode: string;
+  branchName: string;
+  isActive?: boolean;
+}
+
+type BranchFilter = 'all' | 'assigned' | 'unassigned';
+
 export default function Users() {
+  const [form] = Form.useForm<{ branchCode: string }>();
   const [allUsers, setAllUsers] = useState<HrmsUser[]>([]);
-  const [filtered, setFiltered] = useState<HrmsUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [branchFilter, setBranchFilter] = useState<BranchFilter>('all');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalSubmitting, setModalSubmitting] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<HrmsUser | null>(null);
+  const [branchSearch, setBranchSearch] = useState('');
+  const [debouncedBranchSearch, setDebouncedBranchSearch] = useState('');
+  const [branchLoading, setBranchLoading] = useState(false);
+  const [branchOptions, setBranchOptions] = useState<BranchOption[]>([]);
 
   useEffect(() => {
-    fetchUsers();
+    void fetchUsers();
   }, []);
 
-  const fetchUsers = async () => {
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedBranchSearch(branchSearch.trim());
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [branchSearch]);
+
+  useEffect(() => {
+    if (!modalOpen) return;
+    void fetchBranches(debouncedBranchSearch);
+  }, [modalOpen, debouncedBranchSearch]);
+
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const data = await rbacApi.getAllUsers();
-      setAllUsers(data);
-      setFiltered(data);
-    } catch {
+      setAllUsers(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
       message.error('Failed to fetch users');
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const fetchBranches = useCallback(async (q = '') => {
+    setBranchLoading(true);
+    try {
+      const rows = await getBranches({ q: q || undefined });
+      const normalized: BranchOption[] = (rows || [])
+        .map((item: any) => ({
+          branchCode: String(item?.branchCode || '').trim(),
+          branchName: String(item?.branchName || '').trim(),
+          isActive: item?.isActive !== false,
+        }))
+        .filter((item: BranchOption) => item.branchCode.length > 0)
+        .sort((a: BranchOption, b: BranchOption) => a.branchCode.localeCompare(b.branchCode));
+      setBranchOptions(normalized);
+    } catch (error) {
+      console.error('Failed to fetch branches:', error);
+      message.error('Failed to fetch branches');
+    } finally {
+      setBranchLoading(false);
+    }
+  }, []);
+
+  const stats = useMemo(() => {
+    const total = allUsers.length;
+    const assigned = allUsers.filter((user) => Boolean(user.branchCode)).length;
+    const unassigned = total - assigned;
+    const active = allUsers.filter((user) => user.isActive !== false).length;
+    return { total, assigned, unassigned, active };
+  }, [allUsers]);
+
+  const filteredUsers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return allUsers
+      .filter((user) => {
+        if (branchFilter === 'assigned') return Boolean(user.branchCode);
+        if (branchFilter === 'unassigned') return !user.branchCode;
+        return true;
+      })
+      .filter((user) => {
+        if (!q) return true;
+        return [
+          user.name,
+          user.employeeId,
+          user.email,
+          user.role,
+          user.designation,
+          user.department,
+          user.branch,
+          user.branchCode,
+          user.mobile,
+        ]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(q));
+      });
+  }, [allUsers, search, branchFilter]);
+
+  const branchSelectOptions = useMemo(
+    () =>
+      branchOptions.map((branch) => ({
+        value: branch.branchCode,
+        label: `${branch.branchName || 'Unnamed Branch'} (${branch.branchCode})${
+          branch.isActive === false ? ' [Inactive]' : ''
+        }`,
+        disabled: branch.isActive === false,
+      })),
+    [branchOptions],
+  );
+
+  const openAssignModal = (user: HrmsUser) => {
+    setSelectedUser(user);
+    form.setFieldsValue({ branchCode: user.branchCode || undefined });
+    setBranchSearch('');
+    setDebouncedBranchSearch('');
+    setModalOpen(true);
   };
 
-  const handleSearch = (value: string) => {
-    setSearch(value);
-    if (!value) {
-      setFiltered(allUsers);
-      return;
+  const closeAssignModal = () => {
+    setModalOpen(false);
+    setSelectedUser(null);
+    form.resetFields();
+  };
+
+  const handleSaveBranch = async () => {
+    if (!selectedUser?.employeeId) return;
+    try {
+      const values = await form.validateFields();
+      setModalSubmitting(true);
+      await rbacApi.assignUserBranch(selectedUser.employeeId, values.branchCode);
+      message.success(`Branch assigned for ${selectedUser.name || selectedUser.employeeId}`);
+      closeAssignModal();
+      await fetchUsers();
+    } catch (error: any) {
+      if (error?.errorFields) return;
+      message.error(error?.response?.data?.message || 'Failed to assign branch');
+    } finally {
+      setModalSubmitting(false);
     }
-    const lower = value.toLowerCase();
-    setFiltered(
-      allUsers.filter(
-        (u) =>
-          u.name?.toLowerCase().includes(lower) ||
-          u.employeeId?.toLowerCase().includes(lower) ||
-          u.email?.toLowerCase().includes(lower) ||
-          u.role?.toLowerCase().includes(lower)
-      )
-    );
   };
 
   const columns: ColumnsType<HrmsUser> = [
@@ -69,45 +206,74 @@ export default function Users() {
       title: 'Employee ID',
       dataIndex: 'employeeId',
       key: 'employeeId',
-      width: 140,
+      width: 130,
       render: (v) => <Text code>{v || '-'}</Text>,
     },
     {
       title: 'Name',
-      dataIndex: 'name',
       key: 'name',
-      render: (v) => <Text>{v || '-'}</Text>,
-    },
-    {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
-      render: (v) => <Text>{v || '-'}</Text>,
-    },
-    {
-      title: 'Role',
-      dataIndex: 'role',
-      key: 'role',
-      width: 140,
-      render: (v) => (v ? <Tag color="geekblue">{v}</Tag> : <Tag color="default">No Role</Tag>),
-    },
-    {
-      title: 'Department',
-      dataIndex: 'department',
-      key: 'department',
-      render: (v) => <Text>{v || '-'}</Text>,
+      width: 240,
+      render: (_value, row) => (
+        <Space size={10}>
+          <Avatar
+            size={30}
+            style={{
+              background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+              fontSize: 12,
+            }}
+          >
+            {row.name?.trim()?.charAt(0)?.toUpperCase() || 'U'}
+          </Avatar>
+          <div style={{ minWidth: 0 }}>
+            <Text strong>{row.name || '-'}</Text>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {row.email || 'No email available'}
+              </Text>
+            </div>
+          </div>
+        </Space>
+      ),
     },
     {
       title: 'Designation',
-      dataIndex: 'designation',
       key: 'designation',
-      render: (v) => v || '-',
+      width: 200,
+      render: (_value, row) => (
+        <Space direction="vertical" size={1}>
+          <Text>{row.designation || '-'}</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {row.department || 'No department'}
+          </Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'Role',
+      key: 'role',
+      width: 140,
+      render: (_value, row) =>
+        row.role ? <Tag color="geekblue">{row.role}</Tag> : <Tag color="default">No Role</Tag>,
     },
     {
       title: 'Branch',
-      dataIndex: 'branch',
       key: 'branch',
-      render: (v) => <Text>{v || '-'}</Text>,
+      width: 230,
+      render: (_value, row) =>
+        row.branchCode ? (
+          <Space direction="vertical" size={2}>
+            <Text strong>{row.branch || 'Branch name not available'}</Text>
+            <Tag color="blue">{row.branchCode}</Tag>
+          </Space>
+        ) : (
+          <Tag color="gold">Not Assigned</Tag>
+        ),
+    },
+    {
+      title: 'Contact',
+      key: 'contact',
+      width: 160,
+      render: (_value, row) => <Text>{row.mobile || row.email || '-'}</Text>,
     },
     {
       title: 'Status',
@@ -120,45 +286,179 @@ export default function Users() {
       title: 'Last Login',
       dataIndex: 'lastLogin',
       key: 'lastLogin',
-      width: 180,
+      width: 170,
       render: (v) => <Text>{v ? new Date(v).toLocaleString() : '-'}</Text>,
+    },
+    {
+      title: 'Action',
+      key: 'action',
+      width: 140,
+      fixed: 'right',
+      render: (_value, row) => (
+        <Button
+          size="small"
+          type={row.branchCode ? 'default' : 'primary'}
+          icon={<SwapOutlined />}
+          onClick={() => openAssignModal(row)}
+        >
+          {row.branchCode ? 'Reassign' : 'Assign'}
+        </Button>
+      ),
     },
   ];
 
   return (
-    <div className="ui-page" style={{ padding: 12 }}>
+    <div className="ui-page user-mgmt-page" style={{ padding: 12 }}>
+      <Row gutter={[12, 12]}>
+        <Col xs={24} md={6}>
+          <Card className="pro-card-gradient user-mgmt-stat user-mgmt-stat--total" size="small">
+            <Statistic
+              title={
+                <Space size={6}>
+                  <TeamOutlined />
+                  Total HRMS Users
+                </Space>
+              }
+              value={stats.total}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} md={6}>
+          <Card className="pro-card-gradient user-mgmt-stat user-mgmt-stat--assigned" size="small">
+            <Statistic
+              title={
+                <Space size={6}>
+                  <BankOutlined />
+                  Branch Assigned
+                </Space>
+              }
+              value={stats.assigned}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} md={6}>
+          <Card className="pro-card-gradient user-mgmt-stat user-mgmt-stat--unassigned" size="small">
+            <Statistic
+              title={
+                <Space size={6}>
+                  <CloseCircleOutlined />
+                  Unassigned
+                </Space>
+              }
+              value={stats.unassigned}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} md={6}>
+          <Card className="pro-card-gradient user-mgmt-stat user-mgmt-stat--active" size="small">
+            <Statistic
+              title={
+                <Space size={6}>
+                  <CheckCircleOutlined />
+                  Active Users
+                </Space>
+              }
+              value={stats.active}
+            />
+          </Card>
+        </Col>
+      </Row>
+
       <Card
         className="pro-card-gradient"
         size="small"
         title={
           <Space>
             <UserOutlined />
-            <span>Users ({filtered.length})</span>
+            <span>HRMS User Management ({filteredUsers.length})</span>
           </Space>
         }
         extra={
-          <Input
-            allowClear
-            placeholder="Search name, ID, email, role..."
-            prefix={<SearchOutlined />}
-            value={search}
-            onChange={(e) => handleSearch(e.target.value)}
-            style={{ width: 280 }}
-          />
+          <Space wrap>
+            <Select<BranchFilter>
+              value={branchFilter}
+              onChange={setBranchFilter}
+              style={{ width: 180 }}
+              options={[
+                { value: 'all', label: 'All users' },
+                { value: 'assigned', label: 'Branch assigned' },
+                { value: 'unassigned', label: 'Branch unassigned' },
+              ]}
+            />
+            <Input
+              allowClear
+              placeholder="Search name, ID, branch, designation..."
+              prefix={<SearchOutlined />}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: 320 }}
+            />
+          </Space>
         }
       >
+        {stats.unassigned > 0 && (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginBottom: 12 }}
+            message={`${stats.unassigned} user(s) do not have branch assignment`}
+            description="Use the Assign action to map branch code for unassigned users."
+          />
+        )}
+
         <Table
           className="pro-table"
-          rowKey="id"
+          rowKey={(row) => row.id || row.employeeId}
           columns={columns}
-          dataSource={filtered}
+          dataSource={filteredUsers}
           loading={loading}
+          rowClassName={(row) => (row.branchCode ? '' : 'user-mgmt-row-unassigned')}
           sticky
           pagination={{ pageSize: 20, showSizeChanger: true }}
-          scroll={{ x: 1200 }}
+          scroll={{ x: 1420 }}
           size="middle"
         />
       </Card>
+
+      <Modal
+        title="Assign Branch"
+        open={modalOpen}
+        onCancel={closeAssignModal}
+        onOk={handleSaveBranch}
+        okText="Save Branch"
+        confirmLoading={modalSubmitting}
+        destroyOnClose
+      >
+        {selectedUser && (
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 14 }}
+            message={`${selectedUser.name || '-'} (${selectedUser.employeeId})`}
+            description={`${selectedUser.designation || 'No designation'}${
+              selectedUser.department ? ` • ${selectedUser.department}` : ''
+            }`}
+          />
+        )}
+
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="branchCode"
+            label="Branch"
+            rules={[{ required: true, message: 'Please select a branch' }]}
+          >
+            <Select
+              showSearch
+              allowClear
+              placeholder="Search and select branch code"
+              onSearch={setBranchSearch}
+              filterOption={false}
+              options={branchSelectOptions}
+              notFoundContent={branchLoading ? <Spin size="small" /> : 'No branch found'}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }
