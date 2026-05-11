@@ -70,4 +70,18 @@ export const menuItems: MenuItem[] = [
       },
     ],
   },
+  {
+    key: 'loan-management/',
+    path: '/loan-management',
+    menu: 'Loan Management',
+    antIcon: 'BankOutlined',
+    right: ['ADMIN'],
+  },
+  {
+    key: 'settings/',
+    path: '/settings',
+    menu: 'Settings',
+    antIcon: 'SettingOutlined',
+    right: ['ADMIN'],
+  },
 ];

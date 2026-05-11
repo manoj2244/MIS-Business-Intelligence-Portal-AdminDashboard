@@ -12,6 +12,8 @@ import {
   ApartmentOutlined,
   ClusterOutlined,
   DollarOutlined,
+  SettingOutlined,
+  BankOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import type { MenuProps } from 'antd';
@@ -36,6 +38,8 @@ const iconMap: Record<string, React.ReactNode> = {
   ApartmentOutlined: <ApartmentOutlined />,
   ClusterOutlined: <ClusterOutlined />,
   DollarOutlined: <DollarOutlined />,
+  SettingOutlined: <SettingOutlined />,
+  BankOutlined: <BankOutlined />,
 };
 
 const AdminLayout: React.FC = () => {

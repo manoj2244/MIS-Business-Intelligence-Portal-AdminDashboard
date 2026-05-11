@@ -6,6 +6,8 @@ export const rbac = {
   debug: ['ADMIN', 'HR'],
   hierarchyManager: ['ADMIN'],
   financialAccountMapping: ['ADMIN'],
+  loanManagement: ['ADMIN'],
+  settings: ['ADMIN'],
 };
 
 export const hasRoleAccess = (role: string | undefined | null, allowedRoles: string[]): boolean => {

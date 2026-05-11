@@ -16,6 +16,8 @@ import UserDebugInfo from './pages/rbac/UserDebugInfo';
 import Users from './pages/users/Users';
 import HierarchyManager from './pages/organization/HierarchyManager';
 import FinancialAccountMapping from './pages/organization/FinancialAccountMapping';
+import Settings from './pages/settings/Settings';
+import LoanManagement from './pages/loan/LoanManagement';
 
 export default function App() {
   return (
@@ -65,6 +67,14 @@ export default function App() {
             path="/organization-setup/financial-account-mapping"
             element={<FinancialAccountMapping />}
           />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={rbac.loanManagement} />}>
+          <Route path="/loan-management" element={<LoanManagement />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={rbac.settings} />}>
+          <Route path="/settings" element={<Settings />} />
         </Route>
 
         <Route path="/403" element={<Unauthorized />} />
