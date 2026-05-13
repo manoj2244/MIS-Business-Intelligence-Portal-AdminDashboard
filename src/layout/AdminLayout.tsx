@@ -152,7 +152,7 @@ const AdminLayout: React.FC = () => {
         }}
       >
         <div
-          className="flex items-center justify-start h-16 border-b px-4"
+          className="flex items-center justify-start h-16 border-b pl-8 pr-4"
           style={{ borderColor: '#dbe7fb' }}
         >
           {!sidebarCollapsed && (
