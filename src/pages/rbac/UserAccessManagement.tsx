@@ -1,9 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Card, Form, Select, Button, Space, message, Tag, Row, Col,
-  Descriptions, Spin, Typography, Empty, Checkbox,
+  Descriptions, Spin, Typography, Empty, Checkbox, Tooltip,
 } from 'antd';
-import { UserOutlined, KeyOutlined, DatabaseOutlined } from '@ant-design/icons';
+import { UserOutlined, KeyOutlined, DatabaseOutlined, LockOutlined } from '@ant-design/icons';
 import { rbacApi } from '../../services/rbacApi';
 import { getRegions, getClusters, getMappings } from '../../services/hierarchyApi';
 
@@ -25,6 +25,7 @@ export default function UserAccessManagement() {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [userAccess, setUserAccess] = useState<any>(null);
   const [checkedKeys, setCheckedKeys] = useState<string[]>([]);
+  const [defaultKeys, setDefaultKeys] = useState<Set<string>>(new Set()); // auto-granted, locked
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
 
@@ -95,6 +96,16 @@ export default function UserAccessManagement() {
     return 0;
   };
 
+  const HIERARCHY_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
+    BRANCH:  { label: 'Branch User',     color: 'blue'   },
+    CLUSTER: { label: 'Cluster Manager', color: 'purple' },
+    REGION:  { label: 'Region Manager',  color: 'orange' },
+    CENTRAL: { label: 'Central Admin',   color: 'red'    },
+  };
+
+  const getHierarchyConfig = (type: string) =>
+    HIERARCHY_TYPE_CONFIG[type] ?? { label: type || 'Unknown', color: 'default' };
+
   const buildCheckedKeysFromAccess = useCallback((accessData: any): string[] => {
     if (!Array.isArray(accessData?.dataAccess)) return [];
     const keys = new Set<string>();
@@ -111,9 +122,60 @@ export default function UserAccessManagement() {
     return Array.from(keys);
   }, [mappings]);
 
+  // Build locked keys from defaultAccess (HRMS branchCode expansion) — admin cannot uncheck these
+  const buildDefaultKeys = useCallback((accessData: any): Set<string> => {
+    const keys = new Set<string>();
+    const hType: string = accessData?.hierarchyType || 'CENTRAL';
+    const sourceCode: string = accessData?.defaultAccess?.sourceCode || '';
+    const defaultBranches: string[] = accessData?.defaultAccess?.branches || [];
+
+    if (hType === 'CENTRAL') {
+      // Central sees everything — lock all regions, clusters, and branches
+      regions.forEach(r => keys.add(`region:${r.regionCode}`));
+      clusters.forEach(c => keys.add(`cluster:${c.clusterCode}`));
+      mappings.filter(m => m?.isActive).forEach(m => {
+        if (m.mappingType === 'CLUSTER' && m.clusterCode) keys.add(`branch:cluster:${m.clusterCode}:${m.branchCode}`);
+        else if (m.mappingType === 'DIRECT_REGION' && m.regionCode) keys.add(`branch:direct:${m.regionCode}:${m.branchCode}`);
+      });
+      return keys;
+    }
+
+    if (!sourceCode) return keys;
+
+    if (hType === 'REGION') {
+      keys.add(`region:${sourceCode}`);
+      clusters.filter(c => c.regionCode === sourceCode).forEach(c => keys.add(`cluster:${c.clusterCode}`));
+    } else if (hType === 'CLUSTER') {
+      // Also lock the parent region
+      const parentRegion = clusters.find(c => c.clusterCode === sourceCode)?.regionCode;
+      if (parentRegion) keys.add(`region:${parentRegion}`);
+      keys.add(`cluster:${sourceCode}`);
+    } else if (hType === 'BRANCH') {
+      // Lock the branch itself + its parent cluster/region so the tree shows it highlighted
+      const branchMapping = mappings.find(m => m?.isActive && m?.branchCode === sourceCode);
+      if (branchMapping?.mappingType === 'CLUSTER' && branchMapping.clusterCode) {
+        const parentRegion = clusters.find(c => c.clusterCode === branchMapping.clusterCode)?.regionCode;
+        if (parentRegion) keys.add(`region:${parentRegion}`);
+        keys.add(`cluster:${branchMapping.clusterCode}`);
+      } else if (branchMapping?.mappingType === 'DIRECT_REGION' && branchMapping.regionCode) {
+        keys.add(`region:${branchMapping.regionCode}`);
+      }
+    }
+
+    // Lock all individual default branches
+    defaultBranches.forEach(branchCode => {
+      mappings.filter(m => m?.isActive && m?.branchCode === branchCode).forEach(m => {
+        if (m.mappingType === 'CLUSTER' && m.clusterCode) keys.add(`branch:cluster:${m.clusterCode}:${m.branchCode}`);
+        else if (m.mappingType === 'DIRECT_REGION' && m.regionCode) keys.add(`branch:direct:${m.regionCode}:${m.branchCode}`);
+      });
+    });
+    return keys;
+  }, [mappings, clusters, regions]);
+
   const handleUserSelect = async (userCode: string) => {
     setSelectedUser(userCode);
     setCheckedKeys([]);
+    setDefaultKeys(new Set());
     setSelectedRegion(null);
     setSelectedCluster(null);
     setAccessLoading(true);
@@ -121,13 +183,44 @@ export default function UserAccessManagement() {
       const accessData = await rbacApi.getUserAccess(userCode);
       setUserAccess(accessData);
       form.setFieldsValue({ roleCode: getRoleCodeFromAccess(accessData) });
+
+      // Custom access checked keys (editable)
       setCheckedKeys(buildCheckedKeysFromAccess(accessData));
-      // Auto-focus first region
-      const firstCluster = accessData?.dataAccess?.find((e: any) => e?.clusterCode)?.clusterCode || null;
-      const firstRegion = accessData?.dataAccess?.find((e: any) => e?.regionCode)?.regionCode ||
-        (firstCluster ? clusters.find(c => c.clusterCode === firstCluster)?.regionCode : null) || null;
-      setSelectedRegion(firstRegion);
-      setSelectedCluster(firstCluster);
+      // Default (HRMS) keys — locked, shown but not editable
+      setDefaultKeys(buildDefaultKeys(accessData));
+
+      // Auto-focus the user's default region/cluster so locked items are visible immediately
+      const defaultSourceCode = accessData?.defaultAccess?.sourceCode || null;
+      const hType = accessData?.hierarchyType || 'CENTRAL';
+      let autoRegion: string | null = null;
+      let autoCluster: string | null = null;
+
+      if (hType === 'CENTRAL') {
+        // Focus first region so admin can see all is selected
+        autoRegion = regions[0]?.regionCode || null;
+      } else if (hType === 'REGION' && defaultSourceCode) {
+        autoRegion = defaultSourceCode;
+      } else if (hType === 'CLUSTER' && defaultSourceCode) {
+        autoCluster = defaultSourceCode;
+        autoRegion = clusters.find(c => c.clusterCode === defaultSourceCode)?.regionCode || null;
+      } else if (hType === 'BRANCH' && defaultSourceCode) {
+        // Navigate to the branch's parent cluster/region
+        const branchMapping = mappings.find(m => m?.isActive && m?.branchCode === defaultSourceCode);
+        if (branchMapping?.mappingType === 'CLUSTER' && branchMapping.clusterCode) {
+          autoCluster = branchMapping.clusterCode;
+          autoRegion = clusters.find(c => c.clusterCode === branchMapping.clusterCode)?.regionCode || null;
+        } else if (branchMapping?.mappingType === 'DIRECT_REGION' && branchMapping.regionCode) {
+          autoRegion = branchMapping.regionCode;
+        }
+      } else {
+        // fall back to first custom access entry
+        const firstCluster = accessData?.dataAccess?.find((e: any) => e?.clusterCode)?.clusterCode || null;
+        autoCluster = firstCluster;
+        autoRegion = accessData?.dataAccess?.find((e: any) => e?.regionCode)?.regionCode ||
+          (firstCluster ? clusters.find(c => c.clusterCode === firstCluster)?.regionCode : null) || null;
+      }
+      setSelectedRegion(autoRegion);
+      setSelectedCluster(autoCluster);
     } catch {
       message.warning('No access assigned for this user yet');
       setUserAccess(null);
@@ -148,10 +241,12 @@ export default function UserAccessManagement() {
   };
 
   const getSelectedItems = () => {
+    // Only save custom keys — defaultKeys are auto-granted, never stored in User_Data_Access
+    const customKeys = checkedKeys.filter(k => !defaultKeys.has(k));
     const selectedRegions: string[] = [];
     const selectedClusters: string[] = [];
     const selectedBranches: string[] = [];
-    checkedKeys.forEach(key => {
+    customKeys.forEach(key => {
       if (key.startsWith('region:')) selectedRegions.push(key.replace('region:', ''));
       else if (key.startsWith('cluster:')) selectedClusters.push(key.replace('cluster:', ''));
       else if (key.startsWith('branch:')) {
@@ -184,6 +279,7 @@ export default function UserAccessManagement() {
   // ──────── Region checkbox logic ────────
   const toggleRegion = (region: any, checked: boolean) => {
     const regionKey = `region:${region.regionCode}`;
+    if (defaultKeys.has(regionKey)) return; // locked — cannot change
     const regionClusters = clusters.filter(c => c.regionCode === region.regionCode);
     if (checked) {
       const next = [...checkedKeys, regionKey];
@@ -211,6 +307,7 @@ export default function UserAccessManagement() {
 
   const toggleCluster = (cluster: any, checked: boolean) => {
     const clusterKey = `cluster:${cluster.clusterCode}`;
+    if (defaultKeys.has(clusterKey)) return; // locked — cannot change
     const clusterBranches = mappings.filter(m => m.mappingType === 'CLUSTER' && m.clusterCode === cluster.clusterCode && m.isActive);
     if (checked) {
       const next = [...checkedKeys, clusterKey];
@@ -234,6 +331,7 @@ export default function UserAccessManagement() {
     const branchKey = mapping.mappingType === 'CLUSTER'
       ? `branch:cluster:${mapping.clusterCode}:${mapping.branchCode}`
       : `branch:direct:${mapping.regionCode}:${mapping.branchCode}`;
+    if (defaultKeys.has(branchKey)) return; // locked — cannot change
     if (checked) {
       setCheckedKeys([...checkedKeys, branchKey]);
     } else {
@@ -263,6 +361,30 @@ export default function UserAccessManagement() {
   };
 
   const { selectedRegions: selReg, selectedClusters: selClu, selectedBranches: selBra } = getSelectedItems();
+  const hasCustomChanges = selReg.length > 0 || selClu.length > 0 || selBra.length > 0;
+
+  // Live totals — union of defaultKeys + checkedKeys for display in header tags
+  const allCheckedKeys = useMemo(() => {
+    const combined = new Set<string>([...checkedKeys, ...Array.from(defaultKeys)]);
+    return combined;
+  }, [checkedKeys, defaultKeys]);
+
+  const totalSelRegions  = useMemo(() => new Set([...allCheckedKeys].filter(k => k.startsWith('region:')).map(k => k.replace('region:', ''))).size, [allCheckedKeys]);
+  const totalSelClusters = useMemo(() => new Set([...allCheckedKeys].filter(k => k.startsWith('cluster:')).map(k => k.replace('cluster:', ''))).size, [allCheckedKeys]);
+  const totalSelBranches = useMemo(() => new Set(
+    [...allCheckedKeys].filter(k => k.startsWith('branch:')).map(k => { const p = k.split(':'); return p[p.length - 1]; })
+  ).size, [allCheckedKeys]);
+
+  // Live effective branch count = default branches + unique custom branches not already in default
+  const liveEffectiveBranchCount = useMemo(() => {
+    const defaultBranchSet = new Set<string>(
+      [...defaultKeys].filter(k => k.startsWith('branch:')).map(k => { const p = k.split(':'); return p[p.length - 1]; })
+    );
+    const customBranchSet = new Set<string>(
+      selBra.filter(b => !defaultBranchSet.has(b))
+    );
+    return defaultBranchSet.size + customBranchSet.size;
+  }, [defaultKeys, selBra]);
 
   return (
     <div className="ui-page" style={{ padding: 12 }}>
@@ -298,24 +420,71 @@ export default function UserAccessManagement() {
               </Col>
               <Col xs={24} md={12}>
                 {accessLoading && <Spin style={{ marginTop: 16 }} />}
-                {userAccess && !accessLoading && (
-                  <Descriptions title="Current Access" bordered column={1} size="small">
-                    <Descriptions.Item label="Role">
-                      <Tag color="blue">{getRoleCodeFromAccess(userAccess) || 'No Role Assigned'}</Tag>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Permissions">
-                      <Space wrap>
-                        {getPermissionList(userAccess).length > 0 ? (
-                          getPermissionList(userAccess).slice(0, 3).map(p => <Tag key={p} color="green" style={{ fontSize: 11 }}>{p}</Tag>)
-                        ) : <Tag>No Permissions</Tag>}
-                        {getPermissionList(userAccess).length > 3 && <Tag>+{getPermissionList(userAccess).length - 3} more</Tag>}
-                      </Space>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Allowed Branches">
-                      <Tag color="geekblue">{getAllowedBranchesCount(userAccess)} branches</Tag>
-                    </Descriptions.Item>
-                  </Descriptions>
-                )}
+                {userAccess && !accessLoading && (() => {
+                  const hType = userAccess.hierarchyType || 'CENTRAL';
+                  const hCfg = getHierarchyConfig(hType);
+                  const defaultBranches: string[] = userAccess.defaultAccess?.branches || [];
+                  const sourceCode: string = userAccess.defaultAccess?.sourceCode || '';
+                  const isCentral = hType === 'CENTRAL';
+                  return (
+                    <Descriptions title="Current Access" bordered column={1} size="small">
+                      <Descriptions.Item label="Role">
+                        <Tag color="blue">{getRoleCodeFromAccess(userAccess) || 'No Role Assigned'}</Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Hierarchy Type">
+                        <Tag color={hCfg.color}>{hCfg.label}</Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label={
+                        <Space>
+                          <LockOutlined />
+                          <span>Default Access</span>
+                          <Tooltip title="Auto-granted from HRMS branchCode — cannot be removed by admin">
+                            <Tag color="default" style={{ fontSize: 10, cursor: 'help' }}>HRMS</Tag>
+                          </Tooltip>
+                        </Space>
+                      }>
+                        <Space direction="vertical" size={2}>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            Source: <strong>{sourceCode || '—'}</strong> ({hCfg.label})
+                          </Text>
+                          {isCentral ? (
+                            <Tag color="red">All branches (no restriction)</Tag>
+                          ) : (
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              {defaultBranches.length} branch{defaultBranches.length !== 1 ? 'es' : ''} auto-granted
+                              {defaultBranches.length > 0 && (
+                                <Tooltip title={defaultBranches.join(', ')}>
+                                  <Tag style={{ marginLeft: 6, cursor: 'pointer', fontSize: 10 }}>view all</Tag>
+                                </Tooltip>
+                              )}
+                            </Text>
+                          )}
+                        </Space>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Permissions">
+                        <Space wrap>
+                          {getPermissionList(userAccess).length > 0 ? (
+                            getPermissionList(userAccess).slice(0, 3).map(p => <Tag key={p} color="green" style={{ fontSize: 11 }}>{p}</Tag>)
+                          ) : <Tag>No Permissions</Tag>}
+                          {getPermissionList(userAccess).length > 3 && <Tag>+{getPermissionList(userAccess).length - 3} more</Tag>}
+                        </Space>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Total Effective Branches">
+                        <Space>
+                          {isCentral
+                            ? <Tag color="red">All (Central)</Tag>
+                            : <Tag color="geekblue">{liveEffectiveBranchCount} branch{liveEffectiveBranchCount !== 1 ? 'es' : ''}</Tag>
+                          }
+                          {!isCentral && (
+                            <Text type="secondary" style={{ fontSize: 11 }}>
+                              (default: {defaultBranches.length} + custom: {Math.max(0, liveEffectiveBranchCount - defaultBranches.length)})
+                            </Text>
+                          )}
+                        </Space>
+                      </Descriptions.Item>
+                    </Descriptions>
+                  );
+                })()}
               </Col>
             </Row>
           </Card>
@@ -353,10 +522,10 @@ export default function UserAccessManagement() {
             title={<Space><DatabaseOutlined /><span>Assign Data Access</span></Space>}
             extra={
               <Space>
-                <Tag color="blue">{selReg.length} Regions</Tag>
-                <Tag color="green">{selClu.length} Clusters</Tag>
-                <Tag color="gold">{selBra.length} Branches</Tag>
-                <Button type="primary" onClick={handleAssignDataAccess} loading={loading} disabled={!selectedUser || checkedKeys.length === 0}>
+                <Tag color="blue">{totalSelRegions} Region{totalSelRegions !== 1 ? 's' : ''}</Tag>
+                <Tag color="green">{totalSelClusters} Cluster{totalSelClusters !== 1 ? 's' : ''}</Tag>
+                <Tag color="gold">{totalSelBranches} Branch{totalSelBranches !== 1 ? 'es' : ''}</Tag>
+                <Button type="primary" onClick={handleAssignDataAccess} loading={loading} disabled={!selectedUser}>
                   Assign Data Access
                 </Button>
               </Space>
@@ -365,7 +534,14 @@ export default function UserAccessManagement() {
             {regions.length > 0 ? (
               <>
                 <div className="uam-help-box">
-                  <Text><strong>How to use:</strong> Click a region to view clusters, click a cluster to view branches. Use checkboxes to select items.</Text>
+                  <Text>
+                    <strong>How to use:</strong> Click a region to view clusters, click a cluster to view branches. Use checkboxes to select items.
+                    {defaultKeys.size > 0 && (
+                      <span style={{ marginLeft: 8, color: '#f59e0b' }}>
+                        <LockOutlined /> <strong>Locked items</strong> (grey checkboxes) are auto-granted from HRMS branchCode and cannot be removed.
+                      </span>
+                    )}
+                  </Text>
                 </div>
                 <Row gutter={16}>
                   {/* Regions */}
@@ -376,25 +552,65 @@ export default function UserAccessManagement() {
                     <div className="uam-column-body">
                       {regions.map(region => {
                         const regionKey = `region:${region.regionCode}`;
-                        const isChecked = checkedKeys.includes(regionKey);
+                        const isChecked = checkedKeys.includes(regionKey) || defaultKeys.has(regionKey);
+                        const isLocked  = defaultKeys.has(regionKey);
                         const regionClusters = clusters.filter(c => c.regionCode === region.regionCode);
+
+                        // Count how many branches in this region are selected (custom or default)
+                        const allRegionBranchKeys = mappings
+                          .filter(m => m.isActive && (
+                            (m.mappingType === 'CLUSTER' && regionClusters.some(c => c.clusterCode === m.clusterCode)) ||
+                            (m.mappingType === 'DIRECT_REGION' && m.regionCode === region.regionCode)
+                          ))
+                          .map(m => m.mappingType === 'CLUSTER'
+                            ? `branch:cluster:${m.clusterCode}:${m.branchCode}`
+                            : `branch:direct:${region.regionCode}:${m.branchCode}`
+                          );
+                        const selectedBranchCount = allRegionBranchKeys.filter(k =>
+                          checkedKeys.includes(k) || defaultKeys.has(k)
+                        ).length;
+                        const totalBranchCount = allRegionBranchKeys.length;
+                        // partial = has some branches selected but NOT the whole region key
+                        const isPartial = !isChecked && selectedBranchCount > 0;
+
                         return (
                           <div
                             key={region.regionCode}
                             className={`uam-item-card ${selectedRegion === region.regionCode ? 'uam-item-card--selected-region' : ''}`}
+                            style={
+                              isLocked  ? { background: 'rgba(245,158,11,0.06)', borderColor: 'rgba(245,158,11,0.3)' } :
+                              isPartial ? { background: 'rgba(59,130,246,0.04)', borderColor: 'rgba(59,130,246,0.35)', borderStyle: 'dashed' } :
+                              undefined
+                            }
                             onClick={() => { setSelectedRegion(region.regionCode); setSelectedCluster(null); }}
                           >
-                            <Checkbox
-                              checked={isChecked}
-                              onClick={e => e.stopPropagation()}
-                              onChange={e => { e.stopPropagation(); toggleRegion(region, e.target.checked); }}
-                              style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}
-                            />
+                            <Tooltip title={
+                              isLocked  ? 'Auto-granted from HRMS branchCode — cannot be removed' :
+                              isPartial ? `${selectedBranchCount} of ${totalBranchCount} branches assigned` :
+                              undefined
+                            }>
+                              <Checkbox
+                                checked={isChecked}
+                                indeterminate={isPartial}
+                                disabled={isLocked}
+                                onClick={e => e.stopPropagation()}
+                                onChange={e => { e.stopPropagation(); toggleRegion(region, e.target.checked); }}
+                                style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}
+                              />
+                            </Tooltip>
                             <Space direction="vertical" size={4} style={{ width: '100%', paddingRight: 30 }}>
-                              <Text strong className="uam-item-title">{region.regionName}</Text>
+                              <Text strong className="uam-item-title">
+                                {region.regionName}
+                                {isLocked && <LockOutlined style={{ marginLeft: 6, fontSize: 11, color: '#f59e0b' }} />}
+                              </Text>
                               <div>
                                 <Tag color="blue" style={{ fontSize: 11 }}>{region.regionCode}</Tag>
                                 <Tag color="cyan" style={{ fontSize: 11 }}>{regionClusters.length} clusters</Tag>
+                                {isPartial && (
+                                  <Tag color="geekblue" style={{ fontSize: 11 }}>
+                                    {selectedBranchCount}/{totalBranchCount} branches
+                                  </Tag>
+                                )}
                               </div>
                             </Space>
                           </div>
@@ -413,25 +629,55 @@ export default function UserAccessManagement() {
                         clusters.filter(c => c.regionCode === selectedRegion).length > 0 ? (
                           clusters.filter(c => c.regionCode === selectedRegion).map(cluster => {
                             const clusterKey = `cluster:${cluster.clusterCode}`;
-                            const isChecked = checkedKeys.includes(clusterKey);
+                            const isChecked = checkedKeys.includes(clusterKey) || defaultKeys.has(clusterKey);
+                            const isLocked  = defaultKeys.has(clusterKey);
                             const clusterBranches = mappings.filter(m => m.mappingType === 'CLUSTER' && m.clusterCode === cluster.clusterCode && m.isActive);
+
+                            // Partial: some branches in this cluster are selected but not the whole cluster
+                            const allClusterBranchKeys = clusterBranches.map(m => `branch:cluster:${cluster.clusterCode}:${m.branchCode}`);
+                            const selectedClusterBranchCount = allClusterBranchKeys.filter(k =>
+                              checkedKeys.includes(k) || defaultKeys.has(k)
+                            ).length;
+                            const isPartial = !isChecked && selectedClusterBranchCount > 0;
+
                             return (
                               <div
                                 key={cluster.clusterCode}
                                 className={`uam-item-card ${selectedCluster === cluster.clusterCode ? 'uam-item-card--selected-cluster' : ''}`}
+                                style={
+                                  isLocked  ? { background: 'rgba(245,158,11,0.06)', borderColor: 'rgba(245,158,11,0.3)' } :
+                                  isPartial ? { background: 'rgba(59,130,246,0.04)', borderColor: 'rgba(59,130,246,0.35)', borderStyle: 'dashed' } :
+                                  undefined
+                                }
                                 onClick={() => setSelectedCluster(cluster.clusterCode)}
                               >
-                                <Checkbox
-                                  checked={isChecked}
-                                  onClick={e => e.stopPropagation()}
-                                  onChange={e => { e.stopPropagation(); toggleCluster(cluster, e.target.checked); }}
-                                  style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}
-                                />
+                                <Tooltip title={
+                                  isLocked  ? 'Auto-granted from HRMS branchCode — cannot be removed' :
+                                  isPartial ? `${selectedClusterBranchCount} of ${clusterBranches.length} branches assigned` :
+                                  undefined
+                                }>
+                                  <Checkbox
+                                    checked={isChecked}
+                                    indeterminate={isPartial}
+                                    disabled={isLocked}
+                                    onClick={e => e.stopPropagation()}
+                                    onChange={e => { e.stopPropagation(); toggleCluster(cluster, e.target.checked); }}
+                                    style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}
+                                  />
+                                </Tooltip>
                                 <Space direction="vertical" size={4} style={{ width: '100%', paddingRight: 30 }}>
-                                  <Text strong className="uam-item-title">{cluster.clusterName}</Text>
+                                  <Text strong className="uam-item-title">
+                                    {cluster.clusterName}
+                                    {isLocked && <LockOutlined style={{ marginLeft: 6, fontSize: 11, color: '#f59e0b' }} />}
+                                  </Text>
                                   <div>
                                     <Tag color="green" style={{ fontSize: 11 }}>{cluster.clusterCode}</Tag>
                                     <Tag color="orange" style={{ fontSize: 11 }}>{clusterBranches.length} branches</Tag>
+                                    {isPartial && (
+                                      <Tag color="geekblue" style={{ fontSize: 11 }}>
+                                        {selectedClusterBranchCount}/{clusterBranches.length} branches
+                                      </Tag>
+                                    )}
                                   </div>
                                 </Space>
                               </div>
@@ -469,16 +715,27 @@ export default function UserAccessManagement() {
                           const branchKey = mapping.mappingType === 'CLUSTER'
                             ? `branch:cluster:${mapping.clusterCode}:${mapping.branchCode}`
                             : `branch:direct:${mapping.regionCode}:${mapping.branchCode}`;
-                          const isChecked = checkedKeys.includes(branchKey);
+                          const isChecked = checkedKeys.includes(branchKey) || defaultKeys.has(branchKey);
+                          const isLocked  = defaultKeys.has(branchKey);
                           return (
-                            <div key={`${mapping.branchCode}-${mapping.mappingType}`} className={`uam-item-card ${isChecked ? 'uam-item-card--selected-branch' : ''}`}>
-                              <Checkbox
-                                checked={isChecked}
-                                onChange={() => toggleBranch(mapping, !isChecked)}
-                                style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}
-                              />
+                            <div
+                              key={`${mapping.branchCode}-${mapping.mappingType}`}
+                              className={`uam-item-card ${isChecked ? 'uam-item-card--selected-branch' : ''}`}
+                              style={isLocked ? { background: 'rgba(245,158,11,0.06)', borderColor: 'rgba(245,158,11,0.3)' } : undefined}
+                            >
+                              <Tooltip title={isLocked ? 'Auto-granted from HRMS branchCode — cannot be removed' : undefined}>
+                                <Checkbox
+                                  checked={isChecked}
+                                  disabled={isLocked}
+                                  onChange={() => toggleBranch(mapping, !isChecked)}
+                                  style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}
+                                />
+                              </Tooltip>
                               <Space direction="vertical" size={4} style={{ width: '100%', paddingRight: 30 }}>
-                                <Text strong className="uam-item-title">{mapping.branchName}</Text>
+                                <Text strong className="uam-item-title">
+                                  {mapping.branchName}
+                                  {isLocked && <LockOutlined style={{ marginLeft: 6, fontSize: 11, color: '#f59e0b' }} />}
+                                </Text>
                                 <div>
                                   <Tag color="orange" style={{ fontSize: 11 }}>{mapping.branchCode}</Tag>
                                   {mapping.mappingType === 'CLUSTER' ? (
@@ -486,6 +743,7 @@ export default function UserAccessManagement() {
                                   ) : (
                                     <Tag color="blue" style={{ fontSize: 11 }}>Direct</Tag>
                                   )}
+                                  {isLocked && <Tag color="gold" style={{ fontSize: 10 }}>HRMS</Tag>}
                                 </div>
                               </Space>
                             </div>

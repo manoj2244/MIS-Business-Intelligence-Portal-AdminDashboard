@@ -29,7 +29,7 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import { rbacApi } from '../../services/rbacApi';
-import { getBranches } from '../../services/hierarchyApi';
+import { getBranches, getRegions, getClusters } from '../../services/hierarchyApi';
 
 const { Text } = Typography;
 
@@ -60,6 +60,13 @@ interface BranchOption {
 
 type BranchFilter = 'all' | 'assigned' | 'unassigned';
 
+const HIERARCHY_COLOR: Record<string, string> = {
+  BRANCH: 'blue', CLUSTER: 'purple', REGION: 'orange', CENTRAL: 'red',
+};
+const HIERARCHY_LABEL: Record<string, string> = {
+  BRANCH: 'Branch', CLUSTER: 'Cluster', REGION: 'Region', CENTRAL: 'Central',
+};
+
 export default function Users() {
   const [form] = Form.useForm<{ branchCode: string }>();
   const [allUsers, setAllUsers] = useState<HrmsUser[]>([]);
@@ -73,9 +80,13 @@ export default function Users() {
   const [debouncedBranchSearch, setDebouncedBranchSearch] = useState('');
   const [branchLoading, setBranchLoading] = useState(false);
   const [branchOptions, setBranchOptions] = useState<BranchOption[]>([]);
+  const [regionCodes, setRegionCodes] = useState<Set<string>>(new Set());
+  const [clusterCodes, setClusterCodes] = useState<Set<string>>(new Set());
+  const [branchCodes, setBranchCodes] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     void fetchUsers();
+    void fetchHierarchyMasters();
   }, []);
 
   useEffect(() => {
@@ -101,6 +112,15 @@ export default function Users() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const fetchHierarchyMasters = useCallback(async () => {
+    try {
+      const [regs, clus, brans] = await Promise.all([getRegions(), getClusters(), getBranches({})]);
+      setRegionCodes(new Set((regs || []).map((r: any) => String(r.regionCode || '').trim())));
+      setClusterCodes(new Set((clus || []).map((c: any) => String(c.clusterCode || '').trim())));
+      setBranchCodes(new Set((brans || []).map((b: any) => String(b.branchCode || '').trim())));
+    } catch { /* silent — badges just won't show */ }
   }, []);
 
   const fetchBranches = useCallback(async (q = '') => {
@@ -201,6 +221,15 @@ export default function Users() {
     }
   };
 
+  const deriveHierarchyType = useCallback((code: string | null | undefined): string | null => {
+    if (!code) return null;
+    const c = code.trim();
+    if (regionCodes.has(c)) return 'REGION';
+    if (clusterCodes.has(c)) return 'CLUSTER';
+    if (branchCodes.has(c)) return 'BRANCH';
+    return 'CENTRAL';
+  }, [regionCodes, clusterCodes, branchCodes]);
+
   const columns: ColumnsType<HrmsUser> = [
     {
       title: 'Employee ID',
@@ -254,6 +283,16 @@ export default function Users() {
       width: 140,
       render: (_value, row) =>
         row.role ? <Tag color="geekblue">{row.role}</Tag> : <Tag color="default">No Role</Tag>,
+    },
+    {
+      title: 'Hierarchy',
+      key: 'hierarchyType',
+      width: 120,
+      render: (_value, row) => {
+        const type = deriveHierarchyType(row.branchCode);
+        if (!type) return <Tag color="default">Unknown</Tag>;
+        return <Tag color={HIERARCHY_COLOR[type]}>{HIERARCHY_LABEL[type]}</Tag>;
+      },
     },
     {
       title: 'Branch',
@@ -415,7 +454,7 @@ export default function Users() {
           rowClassName={(row) => (row.branchCode ? '' : 'user-mgmt-row-unassigned')}
           sticky
           pagination={{ pageSize: 20, showSizeChanger: true }}
-          scroll={{ x: 1420 }}
+          scroll={{ x: 1540 }}
           size="middle"
         />
       </Card>
