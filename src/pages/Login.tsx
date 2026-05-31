@@ -1,4 +1,5 @@
 import LoginForm from '../components/auth/LoginForm'
+import SuBizLogo from '../assets/SuBizLogo.png'
 
 export default function Login() {
   return (
@@ -36,6 +37,13 @@ export default function Login() {
             <LoginForm />
           </section>
         </div>
+      </div>
+
+      {/* Powered by footer */}
+      <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-2">
+        <img src={SuBizLogo} alt="SuBiz Innovations" style={{ height: 16, opacity: 0.6 }} />
+        <span className="text-xs text-slate-400">Powered by</span>
+        <span className="text-xs font-semibold text-slate-600">SuBiz Innovations</span>
       </div>
     </div>
   )

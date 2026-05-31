@@ -22,6 +22,9 @@ export const AUTH_LOGOUT_PATH =
 export const AUTH_PROFILE_PATH =
   import.meta.env.VITE_AUTH_PROFILE_PATH || '/auth/profile';
 
+export const SETTINGS_PATH =
+  import.meta.env.VITE_SETTINGS_PATH || '/settings';
+
 // Backward-compatible aliases
 export const JWT_TOKEN = ACCESS_TOKEN_KEY;
 export const REFRESH_TOKEN = REFRESH_TOKEN_KEY;

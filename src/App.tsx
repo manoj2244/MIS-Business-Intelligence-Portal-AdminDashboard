@@ -1,6 +1,10 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import Login from './pages/Login';
+import { useEffect } from 'react';
+import Login from './pages/LoginDraft';
+import LoginDraft from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import { settingsApi } from './services/settingsApi';
+import { useBankConfigStore } from './stores/bankConfigStore';
 import ProtectedRoute from './routes/ProtectedRoute';
 import PublicRoute from './routes/PublicRoute';
 import { rbac } from './config/rbac';
@@ -20,6 +24,21 @@ import Settings from './pages/settings/Settings';
 import LoanManagement from './pages/loan/LoanManagement';
 
 export default function App() {
+  const setConfig = useBankConfigStore((s) => s.setConfig);
+
+  useEffect(() => {
+    settingsApi.get().then((config) => {
+      if (config) {
+        setConfig(config);
+        document.title = config.bankName || 'MIS Portal';
+        if (config.faviconBase64) {
+          const link = document.querySelector<HTMLLinkElement>("link[rel='icon']");
+          if (link) link.href = config.faviconBase64;
+        }
+      }
+    });
+  }, [setConfig]);
+
   return (
 <BrowserRouter basename="/admin">
       <NavigationHandler />
@@ -27,6 +46,7 @@ export default function App() {
         <Route element={<PublicRoute />}>
           <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/login-draft" element={<LoginDraft />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
         </Route>
