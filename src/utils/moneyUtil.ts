@@ -26,6 +26,13 @@ const SCALES: Record<string, { divisor: number; suffix: string; label: string }>
   TRILLION: { divisor: 1_000_000_000_000,   suffix: 'T',  label: 'Trillion' },
 };
 
+function withCommas(num: number, decimals: number): string {
+  const fixed = num.toFixed(decimals);
+  const parts = fixed.split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return parts.join('.');
+}
+
 export function formatMoney(
   value: number,
   scale: string,
@@ -33,8 +40,7 @@ export function formatMoney(
   decimals = 2,
 ): string {
   const s = SCALES[scale] ?? SCALES.CRORE;
-  const formatted = (value / s.divisor).toFixed(decimals);
-  return `${currencySymbol}${formatted} ${s.suffix}`;
+  return `${currencySymbol}${withCommas(value / s.divisor, decimals)} ${s.suffix}`;
 }
 
 export function getScaleLabel(scale: string): string {
