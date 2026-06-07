@@ -138,6 +138,18 @@ export const rbacApi = {
     return extractPayload(response);
   },
 
+  // Component Access Management
+  getComponentAccess: async (userCode: string): Promise<{ blockedComponents: string[] }> => {
+    const response = await fetch(`${baseUrl}/users/${userCode}/component-access`);
+    const data = extractPayload(response);
+    return { blockedComponents: data?.blockedComponents || [] };
+  },
+
+  saveComponentAccess: async (userCode: string, blockedComponents: string[]): Promise<any> => {
+    const response = await update(`${baseUrl}/users/${userCode}/component-access`, { blockedComponents });
+    return extractPayload(response);
+  },
+
   // Cache Management
   clearUserCache: async (userCode: string): Promise<any> => {
     const response = await destroy(`${baseUrl}/cache/${userCode}`);
