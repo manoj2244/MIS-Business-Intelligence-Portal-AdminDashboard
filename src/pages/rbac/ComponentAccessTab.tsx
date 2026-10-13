@@ -56,6 +56,52 @@ const CATALOG = [
     ],
   },
   {
+    menuKey: 'asset_quality',
+    menuLabel: 'Asset Quality & Recovery',
+    submenus: [
+      {
+        submenuKey: 'kpi',
+        submenuLabel: 'KPI Cards',
+        items: [
+          { key: 'asset_quality.kpi.gross_loan',         label: 'Gross Loan Portfolio'  },
+          { key: 'asset_quality.kpi.gross_npl',          label: 'Gross NPL'             },
+          { key: 'asset_quality.kpi.watchlist',          label: 'Watchlist Exposure'    },
+          { key: 'asset_quality.kpi.npl_accounts',       label: 'NPL Accounts'          },
+          { key: 'asset_quality.kpi.provision_coverage', label: 'Provision Coverage'    },
+          { key: 'asset_quality.kpi.net_npl',            label: 'Net NPL Ratio'         },
+          { key: 'asset_quality.kpi.write_offs',         label: 'Loan Write-off'        },
+          { key: 'asset_quality.kpi.recovery',           label: 'Recovery YTD'          },
+        ],
+      },
+      {
+        submenuKey: 'chart',
+        submenuLabel: 'Charts',
+        items: [
+          { key: 'asset_quality.chart.health_mix',       label: 'Portfolio Health — Classification Mix' },
+          { key: 'asset_quality.chart.classification',   label: 'Classification by Quality'             },
+          { key: 'asset_quality.chart.loan_count',       label: 'Total Number of Loans'                 },
+          { key: 'asset_quality.chart.adverse_trend',    label: 'Portfolio Movement by Classification'  },
+          { key: 'asset_quality.chart.npl_ratio_trend',  label: 'Gross NPL Ratio Trend'                 },
+          { key: 'asset_quality.chart.projected_npl',    label: 'Current vs Projected NPL'              },
+          { key: 'asset_quality.chart.branch_hotspots',  label: 'Branch Hotspots'                       },
+          { key: 'asset_quality.chart.product_npl',      label: 'NPL by Product'                        },
+          { key: 'asset_quality.chart.npa_accounts',     label: 'Non-Performing Accounts'               },
+          { key: 'asset_quality.chart.write_off_trend',  label: 'Loan Write-offs Trend'                 },
+          { key: 'asset_quality.chart.vintage',          label: 'NPL by Year of Disbursement'           },
+        ],
+      },
+      {
+        submenuKey: 'table',
+        submenuLabel: 'Tables',
+        items: [
+          { key: 'asset_quality.table.top_dpd',               label: 'Top 20 Customers by Maximum DPD'       },
+          { key: 'asset_quality.table.product_stress',        label: 'Product Stress Table'                  },
+          { key: 'asset_quality.table.downgrade_requirement', label: 'Required Amount to Down-class Overdue Customers' },
+        ],
+      },
+    ],
+  },
+  {
     menuKey: 'deposit',
     menuLabel: 'Deposit Analysis',
     submenus: [
